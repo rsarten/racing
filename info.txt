@@ -1,0 +1,8 @@
+tracks
+Sydney:
+- Rosehill Gardens
+- Royal Randwick
+Melbourne
+- Flemington
+- Caulfield
+- Mooney Valley

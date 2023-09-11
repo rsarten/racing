@@ -8,3 +8,6 @@ def date_from_link(link):
     month = month.rjust(2, "0")
     day = date_comp[-2:]
     return year+"-"+month+"-"+day
+
+def clean_venue(venue):
+    return re.sub(" [A-Z]+$", "", venue)

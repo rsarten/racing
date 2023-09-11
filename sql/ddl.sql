@@ -38,7 +38,7 @@ create table racing.meets(
 	"date" date,
 	condition varchar(50),
 	dual_track varchar(1),
-	information varchar(max),
+	information text,
 	penetrometer varchar(20),
 	rail varchar(10),
 	weather varchar(50),
@@ -52,7 +52,7 @@ create table racing.races(
 	track_id int,
 	race_number int,
 	prize_pool int,
-	"time" datetime
+	"time" timestamp
 );
 
 drop table if exists racing.results;
