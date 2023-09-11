@@ -35,7 +35,7 @@ def update_meets_links(save_as = "data/all_state_meets.csv", write_out = True):
 all_meets = update_meets_links()
 
 from sqlalchemy import create_engine
-engine = create_engine("postgresql+psycopg2://rory:Dictionary1@localhost:5432/horse_racing")
+engine = create_engine(f"postgresql+psycopg2://rory:{password}@localhost:5432/horse_racing")
 
 venues = all_meets[["venue", "state"]]
 venues.rename(columns={"venue":"name", "state":"state_code"}, inplace=True)
