@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  postgres:
+    container_name: postgres-server
+    image: postgres
+    hostname: localhost
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: rory
+      POSTGRES_PASSWORD: password
+    volumes:
+      - racing-data:/var/lib/postgresql/racing
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin-server
+    image: dpage/pgadmin4
+    depends_on:
+      - postgres
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: rorysarten@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: password
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    restart: unless-stopped
+
+secrets:
+  db_password:
+    file: ./secrets/password.txt
+  db_user:
+    file: ./secrets/user.txt
+  db_email:
+    file: ./secrets/email.txt
+
+volumes:
+  racing-data:
+  pgadmin-data:
