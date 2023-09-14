@@ -20,7 +20,7 @@ drop table if exists racing.venues;
 create table racing.venues(
 	venue_id serial primary key,
 	"name" varchar(50),
-	state_code varchar(3)
+	"state" varchar(3)
 );
 
 drop table if exists racing.tracks;
@@ -36,13 +36,14 @@ create table racing.meets(
 	meet_id serial primary key,
 	venue_id int,
 	"date" date,
-	condition varchar(50),
+	condition varchar(255),
 	dual_track varchar(1),
 	information text,
 	penetrometer varchar(20),
-	rail varchar(10),
+	rail varchar(100),
 	weather varchar(50),
-	"type" varchar(20)
+	"type" varchar(20),
+	link varchar(255)
 );
 
 drop table if exists racing.races;

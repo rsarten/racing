@@ -93,6 +93,7 @@ def extract_horse_result_details(result: BeautifulSoup):
         table_data = row.find_all("td")
 
         horse["finished"] = table_data[1].text
+        horse["horse_name"] = table_data[3].text
         horse["started"] = table_data[7].text
         horse["margin"] = '0' if table_data[6].text == '' else table_data[6].text
         horse["weight"] = table_data[8].text
