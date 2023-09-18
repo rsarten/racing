@@ -15,7 +15,7 @@ from sqlalchemy import create_engine
 engine = create_engine(f"postgresql+psycopg2://rory:{password}@localhost:5432/horse_racing")
 
 meets = pd.read_sql_query("select venue_id, \"date\" from racing.meets", engine, index_col="venue_id")
-venues = pd.read_sql_query("select * from racing.venues", engine, index_col="venue_id")
+#venues = pd.read_sql_query("select * from racing.venues", engine, index_col="venue_id")
 meets = meets.join(venues)
 meets.reset_index(inplace=True)
 
@@ -31,6 +31,18 @@ def meets_links():
 #professional # 227
 #trial # 74
 all_meets = meets_links()
+meets = all_meets.to_dict(orient = "records")
+for meet in meets:
+    meet_url = meet["link"]
+    print(meet["full_date"], ":", meet["venue"])
+    try:
+        meet_details = extract_meet_details(meet_url)
+        meet_details["races"] = extract_race_details(meet_url)
+        meet["details"] = meet_details
+    except:
+        print("failed to scrape meet")
+
+
 
 all_meets = all_meets.merge(meets, on = ["name", "state_code", ""])
 
