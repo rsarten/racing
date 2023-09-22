@@ -5,7 +5,7 @@ from psycopg2 import __version__ as psycopg2_version
 from sqlalchemy import create_engine
 
 def get_engine(password):
-    return create_engine(f"postgresql+psycopg2://rory:{password}@localhost:5432/horse_racing")
+    return create_engine(f"postgresql+psycopg2://rorysarten:{password}@170.64.216.167:5432/AUS_racing")
 
 def print_psycopg2_exception(err):
     # get details about the exception
@@ -24,9 +24,9 @@ def print_psycopg2_exception(err):
 def get_connection(password):
     try:
         conn = connect(
-            database="horse_racing",
-            host="localhost",
-            user="rory",
+            database="AUS_racing",
+            host="170.64.216.167",
+            user="rorysarten",
             password=password,
             port="5432")
     except OperationalError as err:
