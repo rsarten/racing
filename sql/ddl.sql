@@ -19,7 +19,7 @@ create table racing.meets(
 	meet_id serial primary key,
 	venue_id int not null,
 	"date" date not null,
-	"type" varchar(20) not null,
+	meet_type varchar(20) not null,
 	link varchar(255) not null
 );
 
