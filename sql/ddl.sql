@@ -64,5 +64,6 @@ drop table if exists racing.horses;
 create table racing.horses(
 	horse_id serial primary key,
 	horse_code varchar(50),
-	"name" varchar(50)
+	horse_name varchar(50),
+	date_of_birth date
 );
