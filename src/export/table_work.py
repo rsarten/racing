@@ -2,14 +2,28 @@ import sys
 import numpy as np
 import pandas as pd
 
-def get_venue_id(state, venue, conn):
+def get_id(query, conn):
     with conn.cursor() as cursor:
-        cursor.execute(f"""select venue_id from racing.venues where
-                        \"state\" = \'{state}\' and \"name\" = \'{venue}\';""")
-        venue_id = cursor.fetchone()
-        if venue_id is not None:
-            venue_id = venue_id[0]
-    return venue_id
+        cursor.execute(query)
+        id = cursor.fetchone()
+        if id is not None:
+            id = id[0]
+    return id
+
+def get_venue_id(state, venue, conn):
+    id_query = f"""
+    select venue_id from racing.venues where
+    \"state\" = \'{state}\' and \"name\" = \'{venue}\';
+    """
+    return get_id(query=id_query, conn=conn)
+
+def get_horse_id(horse_code, conn):
+    id_query = f"""
+    select horse_id from racing.horses where
+    horse_code = \'{horse_code}\';
+    """
+    return get_id(query=id_query, conn=conn)
+
 
 def add_venue(state, venue, conn, engine):
     venue_id = get_venue_id(state, venue, conn)
