@@ -1,8 +1,9 @@
-from attr import define, field
+from attr import define, field, Factory
 
 from src.export.table_work import (get_venue_id, get_horse_id, 
                                    get_meet_id, get_race_id, 
-                                   get_result_id, get_track_id)
+                                   get_result_id, get_track_id,
+                                   get_jockey_id, get_trainer_id)
 from src.export.table_work import add_entry
 
 @define
@@ -15,7 +16,7 @@ class Venue:
         if self.venue_id is None:
             self.venue_id = get_venue_id(self.state, self.venue, conn)
 
-    def add_to_db(self, conn):
+    def add_to_db(self, conn, cascade = True):
         if self.venue_id is None: 
             self.retrieve_id(conn)
         if self.venue_id is None:
@@ -38,7 +39,7 @@ class Track:
             if self.venue_id is not None:
                 self.track_id = get_track_id(self.state, self.venue, conn)
 
-    def add_to_db(self, conn):
+    def add_to_db(self, conn, cascade = True):
         if self.venue_id is None:
             raise AttributeError("Track must have venue_id to write")
         if self.track_id is None: 
@@ -68,7 +69,7 @@ class Horse:
         if self.horse_id is None:
             self.horse_id = get_horse_id(self.horse_code, conn)
 
-    def add_to_db(self, conn):
+    def add_to_db(self, conn, cascade = True):
         if self.horse_id is None:
             self.retrieve_id(conn)
         if self.horse_id is None:
@@ -81,9 +82,45 @@ class Horse:
     
 @define
 class Jockey:
+    jockey_name: str
+    jockey_code: str
     jockey_id: int = field(kw_only=True, default=None)
-    name: str
-    code: str
+
+    def retrieve_id(self, conn):
+        if self.jockey_id is None:
+            self.jockey_id = get_jockey_id(self.jockey_code, conn)
+
+    def add_to_db(self, conn, cascade = True):
+        if self.jockey_id is None:
+            self.retrieve_id(conn)
+        if self.jockey_id is None:
+            statement = """
+            insert into racing.jockeys(jockey_code, jockey_name)
+            values (%s, %s) returning jockey_id
+            """
+            values = (self.jockey_code, self.jockey_name)
+            self.meet_id = add_entry(statement, values, conn)
+
+@define
+class Trainer:
+    trainer_name: str
+    trainer_code: str
+    trainer_id: int = field(kw_only=True, default=None)
+
+    def retrieve_id(self, conn):
+        if self.trainer_id is None:
+            self.trainer_id = get_trainer_id(self.trainer_code, conn)
+
+    def add_to_db(self, conn, cascade = True):
+        if self.trainer_id is None:
+            self.retrieve_id(conn)
+        if self.trainer_id is None:
+            statement = """
+            insert into racing.trainers(trainer_code, trainer_name)
+            values (%s, %s) returning trainer_id
+            """
+            values = (self.trainer_code, self.trainer_name)
+            self.meet_id = add_entry(statement, values, conn)
 
 @define
 class Result:
@@ -95,9 +132,57 @@ class Result:
     weight: float = field(converter=float)
     horse: Horse
     jockey: Jockey
+    trainer: Trainer
     result_id: int = field(kw_only=True, default=None)
     race_id: int = field(kw_only=True, default=None)
-    horse_id: int = field(kw_only=True, default=None)
+
+    def retrieve_id(self, conn):
+        if self.result_id is None:
+            if self.race_id is not None and self.horse_id is not None:
+                self.result_id = get_result_id(self.race_id, self.horse_id, conn)
+
+    def add_to_db(self, conn, cascade = True):
+        if self.race_id is None:
+            raise AttributeError("Result must have race_id to write")
+        if self.horse is None or self.horse.horse_id is None:
+            raise AttributeError("Result must have horse_id to write")
+        if self.jockey is None or self.jockey.jockey_id is None:
+            raise AttributeError("Result must have jockey_id to write")
+        if self.trainer is None or self.trainer.trainer_id is None:
+            raise AttributeError("Result must have trainer_id to write")
+        
+        if self.result_id is None:
+            self.retrieve_id(conn)
+        if self.result_id is None:
+            statement = """
+            insert into racing.result(race_id, horse_id, jockey_id,
+            trainer_id, finished, margin, barrier, scratched, 
+            starting_price, weight)
+            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning result_id
+            """
+            values = (self.race_id,
+                      self.horse.horse_id, 
+                      self.jockey.jockey_id,
+                      self.trainer.trainer_id,
+                      self.finished, 
+                      self.margin,
+                      self.barrier, 
+                      self.scratched, 
+                      self.starting_price, 
+                      self.weight)
+            self.meet_id = add_entry(statement, values, conn)
+
+    def id_to_children(self, conn):
+        if self.horse is not None:
+            if self.horse.horse_id is None:
+                self.horse.add_to_db(conn)
+        if self.trainer is not None:
+            if self.trainer.trainer_id_id is None:
+                self.trainer.add_to_db(conn)
+        if self.jockey is not None:
+            if self.jockey.jockey_id_id is None:
+                self.jockey.add_to_db(conn)
+
 
 @define
 class Race:
@@ -114,7 +199,7 @@ class Race:
             if self.meet_id is not None:
                 self.race_id = get_race_id(self.meet_id, self.race_number, conn)
 
-    def add_to_db(self, conn):
+    def add_to_db(self, conn, cascade = True):
         if self.meet_id is None:
             raise AttributeError("Race must have meet_id to write")
         if self.track_id is None:
@@ -129,6 +214,16 @@ class Race:
             """
             values = (self.meet_id, self.track_id, self.race_number, self.prize_pool, self.time)
             self.meet_id = add_entry(statement, values, conn)
+        
+        if cascade:
+            self.id_to_children()
+
+    def id_to_children(self):
+        if self.race_id is not None:
+            if self.results is not None and self.results != []:
+                for result in self.results:
+                    if result.race_id is None:
+                        result.race_id = self.race_id
 
 @define
 class Meet:
@@ -137,7 +232,7 @@ class Meet:
     meet_type: str
     meet_id: int = field(kw_only=True, default=None)
     venue_id: int = field(kw_only=True, default=None)
-    races: [Race] = field(kw_only=True, default=None)
+    races: [Race] = field(kw_only=True, default = Factory(list))
     details: MeetDetails = field(kw_only=True, default=None)
 
     def retrieve_id(self, conn):
@@ -145,7 +240,7 @@ class Meet:
             if self.venue_id is not None:
                 self.meet_id = get_meet_id(self.venue_id, self.date, self.meet_type, conn)
 
-    def add_to_db(self, conn):
+    def add_to_db(self, conn, cascade = True):
         if self.venue_id is None:
             raise AttributeError("Meet must have venue_id to write")
         if self.meet_id is None:
@@ -157,3 +252,14 @@ class Meet:
             """
             values = (self.venue_id, self.date, self.meet_type, self.link)
             self.meet_id = add_entry(statement, values, conn)
+        
+        if cascade:
+            self.id_to_children()
+
+    def id_to_children(self):
+        if self.meet_id is not None:
+            if self.races is not None and self.races != []:
+                for race in self.races:
+                    if race.meet_id is None:
+                        race.meet_id = self.meet_id
+

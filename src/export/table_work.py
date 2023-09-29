@@ -76,6 +76,20 @@ def get_horse_id(horse_code, conn):
     """
     return get_id(query=id_query, conn=conn)
 
+def get_jockey_id(jockey_code, conn):
+    id_query = f"""
+    select jockey_id from racing.jockeys where
+    jockey_code = \'{jockey_code}\';
+    """
+    return get_id(query=id_query, conn=conn)
+
+def get_trainer_id(trainer_code, conn):
+    id_query = f"""
+    select trainer_id from racing.trainers where
+    trainer_code = \'{trainer_code}\';
+    """
+    return get_id(query=id_query, conn=conn)
+
 ## Check and add table rows
 
 def add_venue(state, venue, conn):

@@ -7,6 +7,8 @@ from urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 from bs4 import BeautifulSoup
 
+from src.model.structs import Venue, Meet, Track, Race, Result, Horse, Jockey, Trainer
+
 site = "https://racingaustralia.horse"
 
 meet_attrs = [
@@ -67,63 +69,61 @@ def extract_meet_details(url):
 
     return meet
 
-def extract_race_meta_details(race_details: BeautifulSoup):
+def extract_race_info(race_details: BeautifulSoup):
     details = race_details.find("th").text.split('\r')[0]
-    race = {
+    race_info = {
         "race_number": int(re.findall(r'(?<=^Race )\d*', details)[0]),
-        "race_time": re.findall(r'[\d:AP]+M', details)[0],
+        "time": re.findall(r'[\d:AP]+M', details)[0]
+    }
+    info = race_details.find("td").text
+    race_info["prize_pool"] = info.split(" ")[1].split(".")[0].strip("$").replace(",", "")
+    return race_info
+
+def extract_track_info(race_details: BeautifulSoup):
+    details = race_details.find("th").text.split('\r')[0]
+    track_info = {
         "race_distance": int(re.findall(r'(?<=\()\d+(?= METRES)', details)[0])
     }
-
     track_name_pattern = r'(?<=Track Name: ).*(?= Track Type)'
     track_type_pattern = r'(?<=Track Type: ).*(?= Track)'
 
     race_info = race_details.find("td").text
-    race["race_track"] = re.findall(track_name_pattern, race_info)[0]
-    race["race_type"] = re.findall(track_type_pattern, race_info)[0]
-    race["race_prize_pool"] = race_info.split(" ")[1].split(".")[0]
-    return race
+    track_info["race_track"] = re.findall(track_name_pattern, race_info)[0]
+    track_info["race_type"] = re.findall(track_type_pattern, race_info)[0]
+    return track_info
 
-def extract_horse_result_details(result: BeautifulSoup):
-    table_rows = result.find_all('tr')
+def extract_horse(result_row: BeautifulSoup) -> Horse:
+    horse_data = result_row.find("td", class_ = "horse")
+    horse_link = horse_data.find("a")['href']
+    return Horse(horse_name= horse_data.text.strip(),
+                 horse_code= re.findall(r'(?<=horsecode=).*(?=&stage)', horse_link)[0])
+
+def extract_jockey(result_row: BeautifulSoup) -> Jockey:
+    jockey_data = result_row.find("td", class_ = "jockey")
+    jockey_link = jockey_data.find("a")['href']
+    return Jockey(jockey_name= jockey_data.text.strip(),
+                  jockey_code= re.findall(r'(?<=jockeycode=).*', jockey_link)[0].strip())
+
+def extract_trainer(result_row: BeautifulSoup) -> Trainer:
+    trainer_data = result_row.find("td", class_ = "trainer")
+    trainer_link = trainer_data.find("a")['href']
+    return Trainer(trainer_name= trainer_data.text.strip(),
+                   trainer_code= re.findall(r'(?<=trainercode=).*(?=&trainer)', trainer_link)[0].strip())
+
+def extract_result(result_row: BeautifulSoup) -> Result:
+    row_data = result_row.find_all("td")
+    result = Result(finished= '-1' if row_data[1].text == '' else row_data[1].text.strip(),
+                    margin= '0' if row_data[6].text == '' else row_data[6].text.strip("L"),
+                    barrier= row_data[7].text,
+                    scratched= "Scratched" in result_row["class"],
+                    starting_price= '0' if row_data[10].text == '' else row_data[10].text.strip("$").strip("F").strip("E"),
+                    weight= '0' if row_data[8].text == '' else row_data[8].text.split(" ")[0].strip("kg"),
+                    horse= extract_horse(result_row),
+                    jockey= extract_jockey(result_row),
+                    trainer= extract_trainer(result_row))
+    return result
+        
+def extract_race_results(results: BeautifulSoup) -> [Result]:
+    result_rows = results.find_all('tr')
     race_results = []
-    for row in table_rows[1:]:
-        horse = {}
-        horse["scratched"] = "Scratched" in row["class"]
-        table_data = row.find_all("td")
-
-        horse["finished"] = table_data[1].text
-        horse["horse_name"] = table_data[3].text
-        horse["started"] = table_data[7].text
-        horse["margin"] = '0' if table_data[6].text == '' else table_data[6].text
-        horse["weight"] = table_data[8].text
-        horse["starting_price"] = table_data[10].text
-
-        horse_data = row.find("td", class_ = "horse")
-        horse["name_link"] = horse_data.find("a")['href']
-        horse["code"] = horse_data.find("a")['href'].split("&")[0].split("=")[1]
-        race_results.append(horse)
-    return race_results
-
-def impl_extract_race_details(result):
-    details = result[0]
-    results = result[1]
-
-    race = extract_race_meta_details(details)
-    #print(race)
-    race["result"] = extract_horse_result_details(results)
-    return(race)
-
-def extract_race_details(url: str):
-    page = requests.get(url, verify = False)
-    soup = BeautifulSoup(page.content, "html.parser")
-    ## race outcomes and details
-    race_titles = soup.find_all("table", class_ = "race-title")
-    race_results = soup.find_all("table", class_ = "race-strip-fields")
-
-    results = list(zip(race_titles, race_results))
-    details = []
-    for result in results:
-        details.append(impl_extract_race_details(result))
-    return details
-
+    return [extract_result(row) for row in result_rows]
