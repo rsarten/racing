@@ -11,3 +11,10 @@ def date_from_link(link):
 
 def clean_venue(venue):
     return re.sub(" [A-Z]+$", "", venue)
+
+def int_or_0(x):
+    try:
+        x = int(x)
+    except:
+        x = 0
+    return x

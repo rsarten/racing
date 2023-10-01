@@ -90,6 +90,13 @@ def get_trainer_id(trainer_code, conn):
     """
     return get_id(query=id_query, conn=conn)
 
+def get_venue_from_meet(meet_id, conn):
+    id_query = f"""
+    select venue_id from racing.meets where
+    meet_id = {meet_id};
+    """
+    return get_id(query=id_query, conn=conn)
+
 ## Check and add table rows
 
 def add_venue(state, venue, conn):

@@ -8,6 +8,7 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 from bs4 import BeautifulSoup
 
 from src.model.structs import Venue, Meet, Track, Race, Result, Horse, Jockey, Trainer
+from src.scrape.utils import int_or_0
 
 site = "https://racingaustralia.horse"
 
@@ -79,18 +80,18 @@ def extract_race_info(race_details: BeautifulSoup):
     race_info["prize_pool"] = info.split(" ")[1].split(".")[0].strip("$").replace(",", "")
     return race_info
 
-def extract_track_info(race_details: BeautifulSoup):
+    distance: str = field(converter=int)
+    track_type: str
+
+def extract_track(race_details: BeautifulSoup) -> Track:
     details = race_details.find("th").text.split('\r')[0]
-    track_info = {
-        "race_distance": int(re.findall(r'(?<=\()\d+(?= METRES)', details)[0])
-    }
-    track_name_pattern = r'(?<=Track Name: ).*(?= Track Type)'
-    track_type_pattern = r'(?<=Track Type: ).*(?= Track)'
+    distance= int(re.findall(r'(?<=\()\d+(?= METRES)', details)[0])
 
     race_info = race_details.find("td").text
-    track_info["race_track"] = re.findall(track_name_pattern, race_info)[0]
-    track_info["race_type"] = re.findall(track_type_pattern, race_info)[0]
-    return track_info
+    track_type = re.findall(r'(?<=Track Type: ).*(?= Track)', race_info)[0]
+
+    track = Track(distance=distance, track_type=track_type)
+    return track
 
 def extract_horse(result_row: BeautifulSoup) -> Horse:
     horse_data = result_row.find("td", class_ = "horse")
@@ -112,18 +113,42 @@ def extract_trainer(result_row: BeautifulSoup) -> Trainer:
 
 def extract_result(result_row: BeautifulSoup) -> Result:
     row_data = result_row.find_all("td")
-    result = Result(finished= '-1' if row_data[1].text == '' else row_data[1].text.strip(),
-                    margin= '0' if row_data[6].text == '' else row_data[6].text.strip("L"),
-                    barrier= row_data[7].text,
+    result = Result(finished= int_or_0(row_data[1].text.strip()),
+                    margin= int_or_0(row_data[6].text.strip("L")),
+                    barrier= int_or_0(row_data[7].text),
                     scratched= "Scratched" in result_row["class"],
-                    starting_price= '0' if row_data[10].text == '' else row_data[10].text.strip("$").strip("F").strip("E"),
-                    weight= '0' if row_data[8].text == '' else row_data[8].text.split(" ")[0].strip("kg"),
+                    starting_price= int_or_0(row_data[10].text.strip("$").strip("F").strip("E")),
+                    weight= int_or_0(row_data[8].text.split(" ")[0].strip("kg")),
                     horse= extract_horse(result_row),
                     jockey= extract_jockey(result_row),
                     trainer= extract_trainer(result_row))
     return result
         
 def extract_race_results(results: BeautifulSoup) -> [Result]:
-    result_rows = results.find_all('tr')
-    race_results = []
-    return [extract_result(row) for row in result_rows]
+    # omit first row, as only header info
+    # for i, row in enumerate(results.find_all('tr')[1:]):
+    #     print(i)
+    #     extract_result(row)
+    return [extract_result(row) for row in results.find_all('tr')[1:]]
+
+def extract_race(race_: tuple) -> [Race]:
+    details = race_[0]
+    results = race_[1]
+
+    race = Race(**extract_race_info(details))
+    race.results = extract_race_results(results)
+    race.track = extract_track(details)
+    return(race)
+
+def extract_races(meet: Meet) -> Meet:
+    page = requests.get(meet.link, verify = False)
+    soup = BeautifulSoup(page.content, "html.parser")
+
+    race_titles = soup.find_all("table", class_ = "race-title")
+    race_results = soup.find_all("table", class_ = "race-strip-fields")
+    races = list(zip(race_titles, race_results))
+    # for i, race in enumerate(races):
+    #     print(i)
+    #     extract_race(race)
+    meet.races = [extract_race(race) for race in races]
+    return meet

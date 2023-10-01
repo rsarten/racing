@@ -3,7 +3,8 @@ from attr import define, field, Factory
 from src.export.table_work import (get_venue_id, get_horse_id, 
                                    get_meet_id, get_race_id, 
                                    get_result_id, get_track_id,
-                                   get_jockey_id, get_trainer_id)
+                                   get_jockey_id, get_trainer_id,
+                                   get_venue_from_meet)
 from src.export.table_work import add_entry
 
 @define
@@ -37,7 +38,7 @@ class Track:
     def retrieve_id(self, conn):
         if self.track_id is None:
             if self.venue_id is not None:
-                self.track_id = get_track_id(self.state, self.venue, conn)
+                self.track_id = get_track_id(self.venue_id, self.distance, conn)
 
     def add_to_db(self, conn, cascade = True):
         if self.venue_id is None:
@@ -138,10 +139,12 @@ class Result:
 
     def retrieve_id(self, conn):
         if self.result_id is None:
-            if self.race_id is not None and self.horse_id is not None:
-                self.result_id = get_result_id(self.race_id, self.horse_id, conn)
+            if self.race_id is not None and self.horse is not None:
+                self.result_id = get_result_id(self.race_id, self.horse.horse_id, conn)
 
     def add_to_db(self, conn, cascade = True):
+        self.id_to_children(conn)
+
         if self.race_id is None:
             raise AttributeError("Result must have race_id to write")
         if self.horse is None or self.horse.horse_id is None:
@@ -183,7 +186,6 @@ class Result:
             if self.jockey.jockey_id_id is None:
                 self.jockey.add_to_db(conn)
 
-
 @define
 class Race:
     race_number: int = field(converter=int)
@@ -192,7 +194,7 @@ class Race:
     results: [Result] = field(kw_only=True, default=None)
     race_id: int = field(kw_only=True, default=None)
     meet_id: int = field(kw_only=True, default=None)
-    track_id: int = field(kw_only=True, default=None)
+    track: Track = field(kw_only=True, default=None)
 
     def retrieve_id(self, conn):
         if self.race_id is None:
@@ -200,23 +202,39 @@ class Race:
                 self.race_id = get_race_id(self.meet_id, self.race_number, conn)
 
     def add_to_db(self, conn, cascade = True):
+        if self.track is not None:
+            if self.track.venue_id is None:
+                self.track.venue_id = get_venue_from_meet(self.meet_id, conn)
+            self.track.add_to_db(conn)
+
         if self.meet_id is None:
             raise AttributeError("Race must have meet_id to write")
-        if self.track_id is None:
-            raise AttributeError("Race must have track_id to write")
+        if self.track is None:
+            raise AttributeError("Race must have Track to write")
+        if self.track.track_id is None:
+            raise AttributeError("Race must have Track with track_id to write")
         
         if self.race_id is None:
             self.retrieve_id(conn)
+            print("first retrieve attempt")
         if self.race_id is None:
             statement = """
             insert into racing.race(meet_id, track_id, race_number, prize_pool, time)
             values (%s, %s, %s, %s, %s) returning race_id
             """
-            values = (self.meet_id, self.track_id, self.race_number, self.prize_pool, self.time)
-            self.meet_id = add_entry(statement, values, conn)
+            values = (self.meet_id, 
+                      self.track.track_id, 
+                      self.race_number, 
+                      self.prize_pool, 
+                      self.time)
+            print("using values:", values)
+            self.race_id = add_entry(statement, values, conn)
+            print("status:", self.race_id)
         
         if cascade:
             self.id_to_children()
+            for result in self.results:
+                result.add_to_db(conn)
 
     def id_to_children(self):
         if self.race_id is not None:
@@ -255,11 +273,21 @@ class Meet:
         
         if cascade:
             self.id_to_children()
+            for race in self.races:
+                race.add_to_db(conn)
+
 
     def id_to_children(self):
-        if self.meet_id is not None:
-            if self.races is not None and self.races != []:
-                for race in self.races:
-                    if race.meet_id is None:
-                        race.meet_id = self.meet_id
+        """
+        Pass down meet_id to races.
+        Pass down venue_id to tracks in races.
+        """
+        if self.meet_id is None:
+            raise AttributeError("Meet must have meet_id to be able to pass to children")
+        if self.races is not None and self.races != []:
+            for race in self.races:
+                if race.meet_id is None:
+                    race.meet_id = self.meet_id
+                if race.track.venue_id is None:
+                    race.track.venue_id = self.venue_id
 

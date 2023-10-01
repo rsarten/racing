@@ -1,47 +1,44 @@
 import numpy as np
 import pandas as pd
 
-from src.scrape.extract_records import meet_links, extract_meet_details, extract_race_details
+from src.scrape.extract_records import meet_links, extract_meet_details, extract_races
 from src.scrape.utils import date_from_link, clean_venue
 
 from src.export.connections import get_engine, get_connection
-from src.model.structs import Venue, Meet, Track, Race, Result, Horse, Jockey, Trainer
+from src.model.structs import Meet
 
-password="Dictionary1"
+password=
 engine = get_engine(password)
 conn = get_connection(password)
 
 meet_links = pd.read_sql_query("select * from racing.meets", engine)
 
 meets = meet_links.to_dict(orient="records")
-meet1 = meets[0]
-
-meet1["details"] = extract_race_details(meet1["link"])
-meet = Meet(**meet1)
 
 m = meets[0]
 
-m1 = Meet(**m)
+meet = Meet(**m)
+meet = extract_races(meet)
+meet.add_to_db(conn, cascade=True)
+meet.venue_id
+meet.races[0].add_to_db(conn)
+race0 = meet.races[0]
+race0.race_id is None
+race0.meet_id
+race0.race_number
+race0.prize_pool
+race0.track
+type(race0)
+"""
+insert into racing.race(meet_id, track_id, race_number, prize_pool, time)
+            values (%s, %s, %s, %s, %s) returning race_id
+            """.format(
+            race0.meet_id, 
+            race0.track.track_id, 
+            race0.race_number, 
+            race0.prize_pool, 
+            race0.time)
+race0.retrieve_id(conn)
 
 
-def extract_races(meet: Meet) -> Meet:
-    page = requests.get(meet.link, verify = False)
-    soup = BeautifulSoup(page.content, "html.parser")
-
-    race_titles = soup.find_all("table", class_ = "race-title")
-    race_results = soup.find_all("table", class_ = "race-strip-fields")
-    races = list(zip(race_titles, race_results))
-    for race in races:
-        meet.races.append(extract_race(race))
-    return meet
-
-race = races[0]
-
-def extract_race(race):
-    details = race[0]
-    results = race[1]
-
-    race_ = Race(**extract_race_info(details))
-    race_.results = extract_race_results(results)
-    race_["result"] = extract_horse_result_details(results)
-    return(race)
+Meet.add_to_db(conn)
