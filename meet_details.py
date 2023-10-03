@@ -15,30 +15,25 @@ meet_links = pd.read_sql_query("select * from racing.meets", engine)
 
 meets = meet_links.to_dict(orient="records")
 
-m = meets[0]
+def store_meet(meet, conn):
+    try:
+        meet.id_to_children()
+        for race in meet.races:
+            race.track.add_to_db(conn)
+            race.add_to_db(conn, cascade=False)
+            race.id_to_children()
 
-meet = Meet(**m)
-meet = extract_races(meet)
-meet.add_to_db(conn, cascade=True)
-meet.venue_id
-meet.races[0].add_to_db(conn)
-race0 = meet.races[0]
-race0.race_id is None
-race0.meet_id
-race0.race_number
-race0.prize_pool
-race0.track
-type(race0)
-"""
-insert into racing.race(meet_id, track_id, race_number, prize_pool, time)
-            values (%s, %s, %s, %s, %s) returning race_id
-            """.format(
-            race0.meet_id, 
-            race0.track.track_id, 
-            race0.race_number, 
-            race0.prize_pool, 
-            race0.time)
-race0.retrieve_id(conn)
+            for result in race.results:
+                result.id_to_children(conn)
+                result.add_to_db(conn)
+    except:
+        with open('data/store_meet_errors', 'a') as f:
+            f.write(f'{meet.meet_id},{meet.venue_id}\n')
 
 
-Meet.add_to_db(conn)
+for i, meet in enumerate(meets):
+    print(i)
+    meet = Meet(**meet)
+    meet = extract_races(meet)
+    store_meet(meet, conn)
+

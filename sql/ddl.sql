@@ -50,7 +50,7 @@ create table racing.results(
 	race_id int,
 	horse_id int,
 	jockey_id int,
-	trainer_id, int,
+	trainer_id int,
 	finished int,
 	margin numeric(8, 2),
 	barrier int,

@@ -76,10 +76,10 @@ class Horse:
         if self.horse_id is None:
             statement = """
             insert into racing.horses(horse_code, horse_name, date_of_birth)
-            values (%s, %s, %s) returning race_id
+            values (%s, %s, %s) returning horse_id
             """
             values = (self.horse_code, self.horse_name, self.date_of_birth)
-            self.meet_id = add_entry(statement, values, conn)
+            self.horse_id = add_entry(statement, values, conn)
     
 @define
 class Jockey:
@@ -100,7 +100,7 @@ class Jockey:
             values (%s, %s) returning jockey_id
             """
             values = (self.jockey_code, self.jockey_name)
-            self.meet_id = add_entry(statement, values, conn)
+            self.jockey_id = add_entry(statement, values, conn)
 
 @define
 class Trainer:
@@ -121,7 +121,7 @@ class Trainer:
             values (%s, %s) returning trainer_id
             """
             values = (self.trainer_code, self.trainer_name)
-            self.meet_id = add_entry(statement, values, conn)
+            self.trainer_id = add_entry(statement, values, conn)
 
 @define
 class Result:
@@ -158,7 +158,7 @@ class Result:
             self.retrieve_id(conn)
         if self.result_id is None:
             statement = """
-            insert into racing.result(race_id, horse_id, jockey_id,
+            insert into racing.results(race_id, horse_id, jockey_id,
             trainer_id, finished, margin, barrier, scratched, 
             starting_price, weight)
             values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning result_id
@@ -173,17 +173,17 @@ class Result:
                       self.scratched, 
                       self.starting_price, 
                       self.weight)
-            self.meet_id = add_entry(statement, values, conn)
+            self.result_id = add_entry(statement, values, conn)
 
     def id_to_children(self, conn):
         if self.horse is not None:
             if self.horse.horse_id is None:
                 self.horse.add_to_db(conn)
         if self.trainer is not None:
-            if self.trainer.trainer_id_id is None:
+            if self.trainer.trainer_id is None:
                 self.trainer.add_to_db(conn)
         if self.jockey is not None:
-            if self.jockey.jockey_id_id is None:
+            if self.jockey.jockey_id is None:
                 self.jockey.add_to_db(conn)
 
 @define
@@ -216,10 +216,9 @@ class Race:
         
         if self.race_id is None:
             self.retrieve_id(conn)
-            print("first retrieve attempt")
         if self.race_id is None:
             statement = """
-            insert into racing.race(meet_id, track_id, race_number, prize_pool, time)
+            insert into racing.races(meet_id, track_id, race_number, prize_pool, time)
             values (%s, %s, %s, %s, %s) returning race_id
             """
             values = (self.meet_id, 
@@ -227,9 +226,7 @@ class Race:
                       self.race_number, 
                       self.prize_pool, 
                       self.time)
-            print("using values:", values)
             self.race_id = add_entry(statement, values, conn)
-            print("status:", self.race_id)
         
         if cascade:
             self.id_to_children()

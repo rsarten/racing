@@ -20,7 +20,7 @@ def add_entry(statement, values, conn):
     with conn.cursor() as cursor:
         try:
             cursor.execute(statement, values)
-            id = cursor.fetchone()
+            id = cursor.fetchone()[0]
             conn.commit()
         except:
             id = None
