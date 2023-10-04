@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 
 from src.model.structs import Venue, Meet, Track, Race, Result, Horse, Jockey, Trainer
 from src.scrape.utils import int_or_0
+from src.scrape.utils import date_from_link, clean_venue
 
 site = "https://racingaustralia.horse"
 
@@ -22,13 +23,16 @@ meet_attrs = [
     ('information', r'(?<=Track Information: ).*')
 ]
 
-def meet_overview(meet):
+def meet_overview(meet: BeautifulSoup) -> dict:
     tds = meet.find_all("td")
+    meet_link = tds[1].find("a")['href']
+    meet_desc = tds[1].text.split(" - ") # 1st part venue, 2nd part type
+
     meet_data = {
-        "short_date": tds[0].text,
-        "venue": tds[1].text.split(" - ")[0],
-        "meet_type": tds[1].text.split(" - ")[1],
-        "link": tds[1].find("a")['href']
+        "date": date_from_link(meet_link).strip(),
+        "venue": clean_venue(meet_desc[0]).strip(),
+        "meet_type": meet_desc[1].split("(")[0].strip(),
+        "link": site + meet_link
     }
     return meet_data
 
@@ -78,10 +82,8 @@ def extract_race_info(race_details: BeautifulSoup):
     }
     info = race_details.find("td").text
     race_info["prize_pool"] = info.split(" ")[1].split(".")[0].strip("$").replace(",", "")
+    race_info["winning_time"] = re.findall(r'(?<=Time: )[\d:\.]*', info)[0]
     return race_info
-
-    distance: str = field(converter=int)
-    track_type: str
 
 def extract_track(race_details: BeautifulSoup) -> Track:
     details = race_details.find("th").text.split('\r')[0]

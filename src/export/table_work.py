@@ -25,6 +25,7 @@ def add_entry(statement, values, conn):
         except:
             id = None
             conn.rollback()
+            print("error encountered")
     return id
 
 ## Get table IDs
@@ -103,7 +104,7 @@ def add_venue(state, venue, conn):
     venue_id = get_venue_id(state, venue, conn)
     if venue_id is None:
         statement = """
-        insert into racing.venues(state, venue)
+        insert into racing.venues(state, name)
         values (%s, %s) returning venue_id
         """
         values = (state, venue)

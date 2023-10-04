@@ -1,46 +1,31 @@
 import numpy as np
 import pandas as pd
 
-import re
-import requests
-from urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-from bs4 import BeautifulSoup
+from src.scrape.extract_records import meet_links
 
-from src.scrape.extract_records import meet_links, extract_meet_details, extract_race_details
-from src.scrape.utils import date_from_link
+from src.export.connections import get_engine, get_connection
+from src.model.structs import Meet
+from src.export.table_work import add_venue
 
-from datetime import datetime, timedelta
-import time
+password=
+engine = get_engine(password)
+conn = get_connection(password)
 
-scraped = pd.read_csv("data/meet_links.csv", index_col = False)
-scraped.sort_values("date", ascending=False, inplace = True)
-venues = scraped.drop_duplicates(["venue", "state"])
-venues = venues[["venue", "state", "date"]]
+meets = pd.read_sql_query("select * from racing.meets", engine)
 
-site = "https://racingaustralia.horse"
+new_meets = meet_links()
+new_meets = new_meets.to_dict(orient="records")
 
-meets = venues.to_dict(orient = "records")
+for meet in new_meets:
+    meet["venue_id"] = add_venue(meet["state"], meet["venue"], conn)
+    m = {
+        "venue_id": meet["venue_id"],
+        "date": meet["date"],
+        "link": meet["link"],
+        "meet_type": meet["meet_type"]
+    }
+    meet = (Meet(**m))
+    meet.add_to_db(conn, cascade = False)
 
-with open('data/meets_2022.csv', 'a') as f:
-    f.write('venue,state,date,link\n')
-
-date_list = pd.date_range(start="2022-01-01",end="2022-12-31")
-date_formatted = [d.strftime("%Y%b%d") for d in date_list]
-
-for meet in meets:
-    state = meet["state"]
-    venue = meet["venue"]
-
-    print(venue)
-
-    for mod_date in date_formatted:
-        time.sleep(1)
-        url = f"{site}/FreeFields/Results.aspx?Key={mod_date},{state},{venue}"
-        page = requests.get(url, verify = False)
-        soup = BeautifulSoup(page.content, "html.parser")
-        race_number_menu = soup.find("div", id = "race-number-menu")
-        if race_number_menu is not None:
-            with open('data/meets_2022.csv', 'a') as f:
-                f.write(f'{venue},{state},{date_from_link(url)},"{url}"\n')
-
+conn.close()
+engine.dispose()

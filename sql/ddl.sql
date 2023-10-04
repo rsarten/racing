@@ -6,14 +6,6 @@ create table racing.venues(
 	"state" varchar(3) not null
 );
 
-drop table if exists racing.tracks;
-create table racing.tracks(
-	track_id serial primary key,
-	venue_id int not null,
-	distance int not null,
-	track_type varchar(20) not null
-);
-
 drop table if exists racing.meets;
 create table racing.meets(
 	meet_id serial primary key,
@@ -21,6 +13,14 @@ create table racing.meets(
 	"date" date not null,
 	meet_type varchar(20) not null,
 	link varchar(255) not null
+);
+
+drop table if exists racing.tracks;
+create table racing.tracks(
+	track_id serial primary key,
+	venue_id int not null,
+	distance int not null,
+	track_type varchar(20) not null
 );
 
 drop table if exists racing.meet_details;
@@ -41,7 +41,8 @@ create table racing.races(
 	track_id int not null,
 	race_number int not null,
 	prize_pool int,
-	"time" varchar(50)
+	race_time varchar(50),
+	winning_time varchar(50)
 );
 
 drop table if exists racing.results;

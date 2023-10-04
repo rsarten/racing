@@ -190,7 +190,8 @@ class Result:
 class Race:
     race_number: int = field(converter=int)
     prize_pool: int = field(converter=int)
-    time: str
+    race_time: str
+    winning_time: str
     results: [Result] = field(kw_only=True, default=None)
     race_id: int = field(kw_only=True, default=None)
     meet_id: int = field(kw_only=True, default=None)
@@ -218,14 +219,15 @@ class Race:
             self.retrieve_id(conn)
         if self.race_id is None:
             statement = """
-            insert into racing.races(meet_id, track_id, race_number, prize_pool, time)
-            values (%s, %s, %s, %s, %s) returning race_id
+            insert into racing.races(meet_id, track_id, race_number, prize_pool, race_time, winning_time)
+            values (%s, %s, %s, %s, %s, %s) returning race_id
             """
             values = (self.meet_id, 
                       self.track.track_id, 
                       self.race_number, 
                       self.prize_pool, 
-                      self.time)
+                      self.race_time,
+                      self.winning_time)
             self.race_id = add_entry(statement, values, conn)
         
         if cascade:
