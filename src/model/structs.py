@@ -51,7 +51,7 @@ class Track:
             values (%s, %s, %s) returning track_id
             """
             values = (self.venue_id, self.distance, self.track_type)
-            self.venue_id = add_entry(statement, values, conn)
+            self.track_id = add_entry(statement, values, conn)
 
 @define
 class MeetDetails:

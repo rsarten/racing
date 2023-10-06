@@ -25,7 +25,8 @@ def add_entry(statement, values, conn):
         except:
             id = None
             conn.rollback()
-            print("error encountered")
+    if id is None:
+        raise Exception("failed to add_entry to DB")
     return id
 
 ## Get table IDs

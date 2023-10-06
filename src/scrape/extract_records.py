@@ -8,7 +8,7 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 from bs4 import BeautifulSoup
 
 from src.model.structs import Venue, Meet, Track, Race, Result, Horse, Jockey, Trainer
-from src.scrape.utils import int_or_0
+from src.scrape.utils import int_or_0, float_or_0
 from src.scrape.utils import date_from_link, clean_venue
 
 site = "https://racingaustralia.horse"
@@ -78,7 +78,7 @@ def extract_race_info(race_details: BeautifulSoup):
     details = race_details.find("th").text.split('\r')[0]
     race_info = {
         "race_number": int(re.findall(r'(?<=^Race )\d*', details)[0]),
-        "time": re.findall(r'[\d:AP]+M', details)[0]
+        "race_time": re.findall(r'[\d:AP]+M', details)[0]
     }
     info = race_details.find("td").text
     race_info["prize_pool"] = info.split(" ")[1].split(".")[0].strip("$").replace(",", "")
@@ -116,11 +116,11 @@ def extract_trainer(result_row: BeautifulSoup) -> Trainer:
 def extract_result(result_row: BeautifulSoup) -> Result:
     row_data = result_row.find_all("td")
     result = Result(finished= int_or_0(row_data[1].text.strip()),
-                    margin= int_or_0(row_data[6].text.strip("L")),
+                    margin= float_or_0(row_data[6].text.strip("L")),
                     barrier= int_or_0(row_data[7].text),
                     scratched= "Scratched" in result_row["class"],
-                    starting_price= int_or_0(row_data[10].text.strip("$").strip("F").strip("E")),
-                    weight= int_or_0(row_data[8].text.split(" ")[0].strip("kg")),
+                    starting_price= float_or_0(row_data[10].text.strip("$").strip("F").strip("E")),
+                    weight= float_or_0(row_data[8].text.split(" ")[0].strip("kg")),
                     horse= extract_horse(result_row),
                     jockey= extract_jockey(result_row),
                     trainer= extract_trainer(result_row))

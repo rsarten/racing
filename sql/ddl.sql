@@ -12,7 +12,8 @@ create table racing.meets(
 	venue_id int not null,
 	"date" date not null,
 	meet_type varchar(20) not null,
-	link varchar(255) not null
+	link varchar(255) not null,
+	"status" varchar(50)
 );
 
 drop table if exists racing.tracks;
@@ -24,7 +25,7 @@ create table racing.tracks(
 );
 
 drop table if exists racing.meet_details;
-create table racing.meets(
+create table racing.meet_details(
 	meet_id int primary key,
 	condition varchar(255),
 	dual_track varchar(1),

@@ -18,3 +18,10 @@ def int_or_0(x):
     except:
         x = 0
     return x
+
+def float_or_0(x):
+    try:
+        x = float(x)
+    except:
+        x = 0.0
+    return x

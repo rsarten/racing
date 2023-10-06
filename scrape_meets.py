@@ -16,6 +16,10 @@ meets = pd.read_sql_query("select * from racing.meets", engine)
 new_meets = meet_links()
 new_meets = new_meets.to_dict(orient="records")
 
+with conn.cursor() as cursor:
+    cursor.execute("select max(meet_id) from racing.meets")
+    current_meets_count = cursor.fetchone()[0]
+
 for meet in new_meets:
     meet["venue_id"] = add_venue(meet["state"], meet["venue"], conn)
     m = {
@@ -26,6 +30,13 @@ for meet in new_meets:
     }
     meet = (Meet(**m))
     meet.add_to_db(conn, cascade = False)
+
+with conn.cursor() as cursor:
+    cursor.execute("select max(meet_id) from racing.meets")
+    new_meets_count = cursor.fetchone()[0]
+
+print("prev meet count", current_meets_count)
+print("new meet count", new_meets_count)
 
 conn.close()
 engine.dispose()
