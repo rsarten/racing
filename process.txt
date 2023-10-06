@@ -1,9 +1,0 @@
-create meet details
-    establish venue_id
-        create if not already there
-    check if meet already in table (venue_id + date)
-        if exists
-            end
-        else
-            add meet details
-            in theory other things could all be collected later from link
