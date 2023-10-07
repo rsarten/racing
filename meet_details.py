@@ -70,14 +70,5 @@ for i, meet in enumerate(meets):
 
 
 conn.close()
-
-# add_entry(
-#     """
-#     update racing.meets
-#     set "status" = %s
-#     where meet_id = %s
-#     returning meet_id
-#     """,
-#     (None, 5),
-#     conn)
+engine.dispose()
 
