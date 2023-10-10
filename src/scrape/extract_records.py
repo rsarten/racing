@@ -81,7 +81,8 @@ def extract_race_info(race_details: BeautifulSoup):
         "race_time": re.findall(r'[\d:AP]+M', details)[0]
     }
     info = race_details.find("td").text
-    race_info["prize_pool"] = info.split(" ")[1].split(".")[0].strip("$").replace(",", "")
+    prize = re.findall('(?<=^Of \$)[\d,]+', info)
+    race_info["prize_pool"] = '0' if len(prize) == 0 else prize[0].replace(",", "")
     race_info["winning_time"] = re.findall(r'(?<=Time: )[\d:\.]*', info)[0]
     return race_info
 

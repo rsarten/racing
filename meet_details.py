@@ -17,8 +17,10 @@ meet_links.drop("status", axis=1, inplace=True)
 
 meets = meet_links.to_dict(orient="records")
 
-def store_meet(meet, conn):
+def store_meet(meet : Meet, conn):
     status = f"writing {meet.meet_id}"
+    if not bool(meet.races):
+        return "no races" 
     try:
         meet.id_to_children()
         status = "handling races"
@@ -53,7 +55,7 @@ for i, meet in enumerate(meets):
         with open('data/scrape_write_errors', 'a') as f:
             f.write(f'{meet_id},"{status}"\n')
     
-    if status != "success":
+    if status != "success" and status != "no races":
         status = "error: " + status
 
     add_entry(
