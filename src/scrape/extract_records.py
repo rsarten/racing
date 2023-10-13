@@ -147,11 +147,19 @@ def extract_races(meet: Meet) -> Meet:
     page = requests.get(meet.link, verify = False)
     soup = BeautifulSoup(page.content, "html.parser")
 
-    race_titles = soup.find_all("table", class_ = "race-title")
-    race_results = soup.find_all("table", class_ = "race-strip-fields")
-    races = list(zip(race_titles, race_results))
-    # for i, race in enumerate(races):
+    ## find all tables with classes
+    ## should be all titles and race details
+    page_content = soup.find("div", id = "page-content").find_all("table", class_ = True)
+    ## locate points with race title tables
+    titles = [i for i, e in enumerate(page_content) if e["class"][0] == "race-title"]
+    ## split into sub-tables starting at race title tables
+    race_tables = [page_content[titles[i]:loc] for i, loc in enumerate(titles[1:])]
+
+    ## only extract where both tables exist
+    ## length will be < 2 if race abandoned, only title will exist
+    meet.races = [extract_race((race[0], race[1])) for race in race_tables if len(race) == 2]
+
+    # for i, race in enumerate(races_tables):
     #     print(i)
-    #     extract_race(race)
-    meet.races = [extract_race(race) for race in races]
+    #     extract_race((race[0], race[1]))
     return meet
