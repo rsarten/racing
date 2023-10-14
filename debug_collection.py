@@ -12,8 +12,8 @@ password=
 engine = get_engine(password)
 conn = get_connection(password)
 
-meets = pd.read_sql_query("select * from racing.meets where meet_type = 'Professional' and \"status\" = 'error: scrape meet'", engine)
-
+meets = pd.read_sql_query("select * from racing.meets where \"status\" <> 'success' and \"status\" <> 'no races'", engine)
+meets.value_counts("status")
 
 meets = meets.to_dict(orient="records")
 meet = meets[1]

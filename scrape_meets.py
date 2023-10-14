@@ -8,10 +8,7 @@ from src.model.structs import Meet
 from src.export.table_work import add_venue
 
 password=
-engine = get_engine(password)
 conn = get_connection(password)
-
-meets = pd.read_sql_query("select * from racing.meets where \"status\" <> 'success'", engine)
 
 new_meets = meet_links()
 new_meets = new_meets.to_dict(orient="records")

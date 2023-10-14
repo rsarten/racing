@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from src.scrape.extract_records import meet_links, extract_races
+from src.scrape.extract_records import extract_races
 from src.scrape.utils import date_from_link, clean_venue
 
 from src.export.connections import get_engine, get_connection
