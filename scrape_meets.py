@@ -7,7 +7,7 @@ from src.export.connections import get_engine, get_connection
 from src.model.structs import Meet
 from src.export.table_work import add_venue
 
-password=
+password=""
 conn = get_connection(password)
 
 new_meets = meet_links()

@@ -8,7 +8,7 @@ from src.export.connections import get_engine, get_connection
 from src.export.table_work import add_entry
 from src.model.structs import Meet
 
-password=
+password=""
 engine = get_engine(password)
 conn = get_connection(password)
 
