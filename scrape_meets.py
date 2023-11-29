@@ -34,6 +34,6 @@ with conn.cursor() as cursor:
 
 print("prev meet count", current_meets_count)
 print("new meet count", new_meets_count)
+print("new meets: ", new_meets_count - current_meets_count)
 
 conn.close()
-engine.dispose()
